@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "STR Score",
+  "version": "1.0",
+  "description": "Shows a value score for STR listings: price×1000 ÷ (stars × reviews). Lower = better value.",
+  "icons": {
+    "48": "icon48.png",
+    "96": "icon96.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.airbnb.com/*"],
+      "js": ["content.js"],
+      "css": ["widget.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "host_permissions": [
+    "*://*.airbnb.com/*"
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "str-score@nargothrond.pub"
+    }
+  }
+}
