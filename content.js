@@ -12,15 +12,24 @@
 
   const widget = document.createElement("div");
   widget.id = "str-score-widget";
-  widget.innerHTML = `
-    <div id="str-score-header">
-      <span>🏠 STR Score</span>
-      <span id="str-score-close" title="Close">✕</span>
-    </div>
-    <div id="str-score-body">
-      <div id="str-score-loading">⏳ Reading listing…</div>
-    </div>
-  `;
+  const header = document.createElement("div");
+  header.id = "str-score-header";
+  const titleSpan = document.createElement("span");
+  titleSpan.textContent = "🏠 STR Score";
+  const closeSpan = document.createElement("span");
+  closeSpan.id = "str-score-close";
+  closeSpan.title = "Close";
+  closeSpan.textContent = "✕";
+  header.append(titleSpan, closeSpan);
+
+  const body = document.createElement("div");
+  body.id = "str-score-body";
+  const loading = document.createElement("div");
+  loading.id = "str-score-loading";
+  loading.textContent = "⏳ Reading listing…";
+  body.append(loading);
+
+  widget.append(header, body);
   document.body.appendChild(widget);
 
   document.getElementById("str-score-close").addEventListener("click", () => {
@@ -159,7 +168,14 @@
   // ── Score ─────────────────────────────────────────────────────────────────
   const calcScore = (price, stars, reviews) => (price * 1000) / (stars * reviews);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  const setLoading = (container) => {
+    container.replaceChildren();
+    const l = document.createElement("div");
+    l.id = "str-score-loading";
+    l.textContent = "⏳ Reading listing…";
+    container.append(l);
+  };
+
   const render = (stars, reviews, priceData) => {
     const body = document.getElementById("str-score-body");
     if (!body) return;
@@ -172,42 +188,66 @@
     if (!price)   errors.push("total price (select dates first)");
 
     if (errors.length) {
-      body.innerHTML = `
-        <div id="str-score-error">
-          ⚠️ Could not read: <strong>${errors.join(", ")}</strong>.<br>
-          Select your travel dates, scroll the page, then retry.
-        </div>
-        <button id="str-score-refresh">🔄 Retry</button>
-      `;
-      document.getElementById("str-score-refresh")
-        .addEventListener("click", () => { body.innerHTML = '<div id="str-score-loading">⏳ Reading listing…</div>'; scheduleExtract(500); });
+      body.replaceChildren();
+      const errDiv = document.createElement("div");
+      errDiv.id = "str-score-error";
+      errDiv.append("⚠️ Could not read: ");
+      const strong = document.createElement("strong");
+      strong.textContent = errors.join(", ");
+      errDiv.append(strong, ".");
+      errDiv.append(document.createElement("br"));
+      errDiv.append("Select your travel dates, scroll the page, then retry.");
+      
+      const retryBtn = document.createElement("button");
+      retryBtn.id = "str-score-refresh";
+      retryBtn.textContent = "🔄 Retry";
+      retryBtn.onclick = () => { setLoading(body); scheduleExtract(500); };
+      
+      body.append(errDiv, retryBtn);
       return;
     }
 
     const score = calcScore(price, stars, reviews);
 
-    body.innerHTML = `
-      <div class="scorer-row">
-        <span class="scorer-label">⭐ Stars</span>
-        <span class="scorer-value">${stars.toFixed(2)}</span>
-      </div>
-      <div class="scorer-row">
-        <span class="scorer-label">💬 Reviews</span>
-        <span class="scorer-value">${reviews.toLocaleString()}</span>
-      </div>
-      <div class="scorer-row">
-        <span class="scorer-label">💶 ${priceLabel}</span>
-        <span class="scorer-value">${price.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>
-      </div>
-      <div id="str-score-result">
-        <div class="score-label">Value Score</div>
-        <div class="score-number">${score.toFixed(1)}</div>
-      </div>
-      <div id="str-score-formula">score = price×1000 ÷ (stars×reviews) — lower is better</div>
-      <button id="str-score-refresh">🔄 Refresh</button>
-    `;
-    document.getElementById("str-score-refresh")
-      .addEventListener("click", () => { body.innerHTML = '<div id="str-score-loading">⏳ Reading listing…</div>'; scheduleExtract(300); });
+    body.replaceChildren();
+
+    const createRow = (label, value) => {
+      const row = document.createElement("div");
+      row.className = "scorer-row";
+      const lbl = document.createElement("span");
+      lbl.className = "scorer-label";
+      lbl.textContent = label;
+      const val = document.createElement("span");
+      val.className = "scorer-value";
+      val.textContent = value;
+      row.append(lbl, val);
+      return row;
+    };
+
+    body.append(createRow("⭐ Stars", stars.toFixed(2)));
+    body.append(createRow(`💬 Reviews`, reviews.toLocaleString()));
+    body.append(createRow(`💶 ${priceLabel}`, price.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})));
+
+    const result = document.createElement("div");
+    result.id = "str-score-result";
+    const resLabel = document.createElement("div");
+    resLabel.className = "score-label";
+    resLabel.textContent = "Value Score";
+    const resNum = document.createElement("div");
+    resNum.className = "score-number";
+    resNum.textContent = score.toFixed(1);
+    result.append(resLabel, resNum);
+
+    const formula = document.createElement("div");
+    formula.id = "str-score-formula";
+    formula.textContent = "score = price×1000 ÷ (stars×reviews) — lower is better";
+
+    const refreshBtn = document.createElement("button");
+    refreshBtn.id = "str-score-refresh";
+    refreshBtn.textContent = "🔄 Refresh";
+    refreshBtn.onclick = () => { setLoading(body); scheduleExtract(300); };
+
+    body.append(result, formula, refreshBtn);
   };
 
   // ── Extraction loop ───────────────────────────────────────────────────────
@@ -240,7 +280,7 @@
       lastHref = location.href;
       if (!isListingPage()) { widget.remove(); navObserver.disconnect(); return; }
       const body = document.getElementById("str-score-body");
-      if (body) body.innerHTML = '<div id="str-score-loading">⏳ Reading listing…</div>';
+      if (body) setLoading(body);
       scheduleExtract(2000);
     }
   });
