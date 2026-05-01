@@ -20,7 +20,10 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "str-score@nargothrond.pub"
+      "id": "str-score@nargothrond.pub",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   }
 }
